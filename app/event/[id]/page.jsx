@@ -1,13 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+"use client";
 
-const apiBase = "/api";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 
-const getEventIdFromPath = () => {
-  const parts = window.location.pathname.split("/").filter(Boolean);
-  if (parts[0] === "event" && parts[1]) {
-    return parts[1];
-  }
-  return null;
+const emptyEvent = {
+  id: "",
+  name: "",
+  categories: []
 };
 
 const uid = () => {
@@ -17,38 +16,18 @@ const uid = () => {
   return Math.random().toString(36).slice(2, 10);
 };
 
-const emptyEvent = {
-  id: "",
-  name: "",
-  categories: []
-};
-
-export default function App() {
-  const [eventId, setEventId] = useState(getEventIdFromPath());
+export default function EventPage() {
+  const params = useParams();
+  const eventId = params?.id;
   const [event, setEvent] = useState(emptyEvent);
-  const [loading, setLoading] = useState(Boolean(eventId));
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [eventNameInput, setEventNameInput] = useState("");
   const [renameInput, setRenameInput] = useState("");
   const [categoryInput, setCategoryInput] = useState("");
   const [itemDrafts, setItemDrafts] = useState({});
 
   useEffect(() => {
-    const handlePopState = () => {
-      setEventId(getEventIdFromPath());
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    if (!eventId) {
-      setEvent(emptyEvent);
-      setLoading(false);
-      setError("");
-      return;
-    }
+    if (!eventId) return;
     loadEvent(eventId);
   }, [eventId]);
 
@@ -61,13 +40,17 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${apiBase}/events/${id}`);
+      const res = await fetch(`/api/events/${id}`);
       if (!res.ok) {
         throw new Error("Event not found");
       }
       const data = await res.json();
-      setEvent(data);
-      setRenameInput(data.name ?? "");
+      const normalized = {
+        ...data,
+        categories: Array.isArray(data?.categories) ? data.categories : []
+      };
+      setEvent(normalized);
+      setRenameInput(normalized.name ?? "");
     } catch (err) {
       setError("We could not load this event. Check the link or create a new one.");
     } finally {
@@ -75,40 +58,11 @@ export default function App() {
     }
   };
 
-  const createEvent = async (e) => {
-    e.preventDefault();
-    if (!eventNameInput.trim()) return;
-    setCreating(true);
-    setError("");
-    try {
-      const res = await fetch(`${apiBase}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: eventNameInput.trim() })
-      });
-      if (!res.ok) throw new Error("Failed to create event");
-      const data = await res.json();
-      navigateToEvent(data.id);
-      setEvent(data);
-      setRenameInput(data.name ?? "");
-      setEventNameInput("");
-    } catch (err) {
-      setError("Something went wrong creating the event.");
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const navigateToEvent = (id) => {
-    window.history.pushState({}, "", `/event/${id}`);
-    setEventId(id);
-  };
-
   const saveEvent = async (nextEvent) => {
     setEvent(nextEvent);
     setError("");
     try {
-      const res = await fetch(`${apiBase}/events/${eventId}`, {
+      const res = await fetch(`/api/events/${eventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nextEvent)
@@ -187,48 +141,6 @@ export default function App() {
       window.prompt("Copy this link:", link);
     }
   };
-
-  if (!eventId) {
-    return (
-      <div className="page">
-        <header className="hero">
-          <p className="eyebrow">PotluckShare</p>
-          <h1>One link. One list. Everyone brings something.</h1>
-          <p className="subtitle">
-            Create a potluck event, share the link, and let your friends add what they will
-            bring. No accounts, no friction.
-          </p>
-          <form className="form-inline" onSubmit={createEvent}>
-            <input
-              className="input"
-              type="text"
-              placeholder="Event name"
-              value={eventNameInput}
-              onChange={(e) => setEventNameInput(e.target.value)}
-            />
-            <button className="button button-primary" type="submit" disabled={creating}>
-              {creating ? "Creating..." : "Create event"}
-            </button>
-          </form>
-          {error && <p className="error">{error}</p>}
-        </header>
-        <section className="feature-grid">
-          <div className="card">
-            <h3>Share the link</h3>
-            <p>Everyone uses the same link. Anyone can add or update items.</p>
-          </div>
-          <div className="card">
-            <h3>Organize by category</h3>
-            <p>Split the list into mains, sides, drinks, or whatever you need.</p>
-          </div>
-          <div className="card">
-            <h3>Fast on mobile</h3>
-            <p>Simple layout, big touch targets, and clean typography.</p>
-          </div>
-        </section>
-      </div>
-    );
-  }
 
   return (
     <div className="page">

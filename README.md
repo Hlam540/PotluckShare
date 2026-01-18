@@ -3,9 +3,14 @@ PotluckShare is a lightweight, no-account potluck organizer that lets friend gro
 
 ## Development
 
-Server (Postgres required):
-1) Set `DATABASE_URL` (example: `postgres://user:password@localhost:5432/potluckshare`).
-2) `cd server && npm install && npm run dev`
+PotluckShare now runs on Next.js with Postgres-backed API routes.
 
-Client:
-1) `cd client && npm install && npm run dev`
+1) Set `DATABASE_URL` (example: `postgres://user:password@localhost:5432/potluckshare`).
+2) `npm install`
+3) `npm run dev`
+
+Seed data (optional):
+1) `npm run seed`
+
+## Deployment (Vercel)
+Set `DATABASE_URL` in your Vercel project environment variables before deploying.
