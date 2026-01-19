@@ -11,6 +11,5 @@ PotluckShare is a lightweight, no-account potluck organizer that lets friend gro
 - Frontend: Next.js (React)
 - Backend: Next.js API routes (Node.js)
 - Database: Postgres (hosted on Neon)
-- Hosted database provider: Neon
 - Development: local `npm run dev`
 - Deployment: Vercel
