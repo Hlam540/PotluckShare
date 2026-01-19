@@ -13,3 +13,9 @@ PotluckShare is a lightweight, no-account potluck organizer that lets friend gro
 - Database: Postgres (hosted on Neon)
 - Development: local `npm run dev`
 - Deployment: Vercel
+
+
+<img width="1000" height="934" alt="image" src="https://github.com/user-attachments/assets/379a2dbb-ad05-447d-918a-a2178ae476c4" />
+
+<img width="500" height="806" alt="image" src="https://github.com/user-attachments/assets/4ac89dca-768c-4a07-b79f-a179a50a3aaf" />
+
