@@ -8,14 +8,15 @@ export async function POST(request) {
     name: body?.name,
     categories: []
   });
+  const categoriesJson = JSON.stringify(categories ?? []);
   const id = createId();
   const now = new Date();
 
   try {
     await pool.query(
       `INSERT INTO events (id, name, categories, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [id, name, categories, now, now]
+       VALUES ($1, $2, $3::jsonb, $4, $5)`,
+      [id, name, categoriesJson, now, now]
     );
     return Response.json(
       {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 
 const emptyEvent = {
@@ -23,8 +24,14 @@ export default function EventPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [renameInput, setRenameInput] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
   const [categoryInput, setCategoryInput] = useState("");
   const [itemDrafts, setItemDrafts] = useState({});
+  const [claimDrafts, setClaimDrafts] = useState({});
+  const [editingPersonId, setEditingPersonId] = useState(null);
+  const [personDraft, setPersonDraft] = useState("");
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [itemLabelDraft, setItemLabelDraft] = useState("");
 
   useEffect(() => {
     if (!eventId) return;
@@ -34,6 +41,15 @@ export default function EventPage() {
   const totalItems = useMemo(() => {
     if (!event?.categories?.length) return 0;
     return event.categories.reduce((sum, category) => sum + category.items.length, 0);
+  }, [event]);
+
+  const unclaimedItems = useMemo(() => {
+    if (!event?.categories?.length) return 0;
+    return event.categories.reduce(
+      (sum, category) =>
+        sum + category.items.filter((item) => !item.person?.trim()).length,
+      0
+    );
   }, [event]);
 
   const loadEvent = async (id) => {
@@ -51,6 +67,7 @@ export default function EventPage() {
       };
       setEvent(normalized);
       setRenameInput(normalized.name ?? "");
+      setEditingTitle(false);
     } catch (err) {
       setError("We could not load this event. Check the link or create a new one.");
     } finally {
@@ -81,6 +98,12 @@ export default function EventPage() {
     e.preventDefault();
     if (!renameInput.trim()) return;
     await saveEvent({ ...event, name: renameInput.trim() });
+    setEditingTitle(false);
+  };
+
+  const cancelRename = () => {
+    setRenameInput(event?.name ?? "");
+    setEditingTitle(false);
   };
 
   const addCategory = async (e) => {
@@ -92,6 +115,7 @@ export default function EventPage() {
   };
 
   const removeCategory = async (categoryId) => {
+    if (!window.confirm("Remove this category and all of its items?")) return;
     const next = event.categories.filter((category) => category.id !== categoryId);
     await saveEvent({ ...event, categories: next });
   };
@@ -106,14 +130,18 @@ export default function EventPage() {
   const addItem = async (categoryId, e) => {
     e.preventDefault();
     const draft = itemDrafts[categoryId] || {};
-    if (!draft.label?.trim() || !draft.person?.trim()) return;
+    if (!draft.label?.trim()) return;
     const nextCategories = event.categories.map((category) => {
       if (category.id !== categoryId) return category;
       return {
         ...category,
         items: [
           ...category.items,
-          { id: uid(), label: draft.label.trim(), person: draft.person.trim() }
+          {
+            id: uid(),
+            label: draft.label.trim(),
+            person: draft.person?.trim() ?? ""
+          }
         ]
       };
     });
@@ -122,6 +150,7 @@ export default function EventPage() {
   };
 
   const removeItem = async (categoryId, itemId) => {
+    if (!window.confirm("Remove this item?")) return;
     const nextCategories = event.categories.map((category) => {
       if (category.id !== categoryId) return category;
       return {
@@ -129,6 +158,81 @@ export default function EventPage() {
         items: category.items.filter((item) => item.id !== itemId)
       };
     });
+    await saveEvent({ ...event, categories: nextCategories });
+  };
+
+  const updateClaimDraft = (itemId, value) => {
+    setClaimDrafts((drafts) => ({ ...drafts, [itemId]: value }));
+  };
+
+  const claimItem = async (categoryId, itemId, e) => {
+    e.preventDefault();
+    const name = claimDrafts[itemId]?.trim();
+    if (!name) return;
+    const nextCategories = event.categories.map((category) => {
+      if (category.id !== categoryId) return category;
+      return {
+        ...category,
+        items: category.items.map((item) =>
+          item.id === itemId ? { ...item, person: name } : item
+        )
+      };
+    });
+    setClaimDrafts((drafts) => ({ ...drafts, [itemId]: "" }));
+    await saveEvent({ ...event, categories: nextCategories });
+  };
+
+  const startEditPerson = (item) => {
+    setEditingPersonId(item.id);
+    setPersonDraft(item.person ?? "");
+  };
+
+  const cancelEditPerson = () => {
+    setEditingPersonId(null);
+    setPersonDraft("");
+  };
+
+  const savePerson = async (categoryId, itemId, e) => {
+    e.preventDefault();
+    const nextName = personDraft?.trim() ?? "";
+    const nextCategories = event.categories.map((category) => {
+      if (category.id !== categoryId) return category;
+      return {
+        ...category,
+        items: category.items.map((item) =>
+          item.id === itemId ? { ...item, person: nextName } : item
+        )
+      };
+    });
+    setEditingPersonId(null);
+    setPersonDraft("");
+    await saveEvent({ ...event, categories: nextCategories });
+  };
+
+  const startEditItemLabel = (item) => {
+    setEditingItemId(item.id);
+    setItemLabelDraft(item.label ?? "");
+  };
+
+  const cancelEditItemLabel = () => {
+    setEditingItemId(null);
+    setItemLabelDraft("");
+  };
+
+  const saveItemLabel = async (categoryId, itemId, e) => {
+    e.preventDefault();
+    if (!itemLabelDraft.trim()) return;
+    const nextCategories = event.categories.map((category) => {
+      if (category.id !== categoryId) return category;
+      return {
+        ...category,
+        items: category.items.map((item) =>
+          item.id === itemId ? { ...item, label: itemLabelDraft.trim() } : item
+        )
+      };
+    });
+    setEditingItemId(null);
+    setItemLabelDraft("");
     await saveEvent({ ...event, categories: nextCategories });
   };
 
@@ -147,12 +251,42 @@ export default function EventPage() {
       <header className="event-header">
         <div>
           <p className="eyebrow">PotluckShare</p>
-          <h1>{event?.name || "Loading..."}</h1>
+          {editingTitle ? (
+            <form className="title-edit" onSubmit={handleRename}>
+              <input
+                className="input title-input"
+                type="text"
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                autoFocus
+              />
+              <div className="title-actions">
+                <button className="button button-primary" type="submit">
+                  Save
+                </button>
+                <button className="button button-ghost" type="button" onClick={cancelRename}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              className="title-button"
+              type="button"
+              onClick={() => setEditingTitle(true)}
+            >
+              <h1>{event?.name || "Loading..."}</h1>
+              <span className="title-hint">Click to edit</span>
+            </button>
+          )}
           <p className="subtitle">
-            {totalItems} items claimed so far. Share the link and fill the list.
+            {unclaimedItems} items not claimed yet. Share the link and fill the list.
           </p>
         </div>
         <div className="event-actions">
+          <Link className="button button-ghost" href="/">
+            Create new event
+          </Link>
           <button className="button" type="button" onClick={copyLink}>
             Copy link
           </button>
@@ -164,26 +298,6 @@ export default function EventPage() {
 
       {!loading && (
         <>
-          <section className="panel">
-            <div className="panel-row">
-              <div>
-                <h2>Edit event name</h2>
-                <p className="muted">Everyone can update the title for this potluck.</p>
-              </div>
-              <form className="form-inline" onSubmit={handleRename}>
-                <input
-                  className="input"
-                  type="text"
-                  value={renameInput}
-                  onChange={(e) => setRenameInput(e.target.value)}
-                />
-                <button className="button button-primary" type="submit">
-                  Save
-                </button>
-              </form>
-            </div>
-          </section>
-
           <section className="panel">
             <div className="panel-row">
               <div>
@@ -229,9 +343,93 @@ export default function EventPage() {
                   <ul className="item-list">
                     {category.items.map((item) => (
                       <li className="item-row" key={item.id}>
-                        <div>
-                          <p className="item-label">{item.label}</p>
-                          <p className="item-person">Bringing: {item.person}</p>
+                        <div className="item-info">
+                          {editingItemId === item.id ? (
+                            <form
+                              className="claim-form"
+                              onSubmit={(e) => saveItemLabel(category.id, item.id, e)}
+                            >
+                              <input
+                                className="input input-compact"
+                                type="text"
+                                placeholder="Dish name"
+                                value={itemLabelDraft}
+                                onChange={(e) => setItemLabelDraft(e.target.value)}
+                                autoFocus
+                              />
+                              <button className="button button-primary" type="submit">
+                                Save
+                              </button>
+                              <button
+                                className="button button-ghost"
+                                type="button"
+                                onClick={cancelEditItemLabel}
+                              >
+                                Cancel
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              className="label-button"
+                              type="button"
+                              onClick={() => startEditItemLabel(item)}
+                            >
+                              <span className="item-label">{item.label}</span>
+                              <span className="label-hint">Click to edit</span>
+                            </button>
+                          )}
+                          {item.person?.trim() ? (
+                            editingPersonId === item.id ? (
+                              <form
+                                className="claim-form"
+                                onSubmit={(e) => savePerson(category.id, item.id, e)}
+                              >
+                                <input
+                                  className="input input-compact"
+                                  type="text"
+                                  placeholder="Your name"
+                                  value={personDraft}
+                                  onChange={(e) => setPersonDraft(e.target.value)}
+                                  autoFocus
+                                />
+                                <button className="button button-primary" type="submit">
+                                  Save
+                                </button>
+                                <button
+                                  className="button button-ghost"
+                                  type="button"
+                                  onClick={cancelEditPerson}
+                                >
+                                  Cancel
+                                </button>
+                              </form>
+                            ) : (
+                              <button
+                                className="person-button"
+                                type="button"
+                                onClick={() => startEditPerson(item)}
+                              >
+                                <span className="item-person">Bringer: {item.person}</span>
+                                <span className="person-hint">Click to edit</span>
+                              </button>
+                            )
+                          ) : (
+                            <form
+                              className="claim-form"
+                              onSubmit={(e) => claimItem(category.id, item.id, e)}
+                            >
+                              <input
+                                className="input input-compact"
+                                type="text"
+                                placeholder="Claim with name"
+                                value={claimDrafts[item.id] ?? ""}
+                                onChange={(e) => updateClaimDraft(item.id, e.target.value)}
+                              />
+                              <button className="button button-primary" type="submit">
+                                Claim
+                              </button>
+                            </form>
+                          )}
                         </div>
                         <button
                           className="button button-ghost"
@@ -259,7 +457,7 @@ export default function EventPage() {
                     <input
                       className="input"
                       type="text"
-                      placeholder="Your name"
+                      placeholder="Name (optional)"
                       value={draft.person}
                       onChange={(e) => updateDraft(category.id, "person", e.target.value)}
                     />

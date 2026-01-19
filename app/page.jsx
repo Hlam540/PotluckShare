@@ -34,13 +34,12 @@ export default function HomePage() {
   return (
     <div className="page">
       <header className="hero">
-        <p className="eyebrow">PotluckShare</p>
         <h1>PotluckShare</h1>
-        <p className="subtitle">
-          Create a potluck event, share the link, and let your friends add what they will bring.
-          No accounts, no friction.
+        <p className="subtitle hero-subtitle">
+          Create a potluck event, save the link, share the link, and let potluck participants add
+          what they will bring. No accounts, no friction, easy to use.
         </p>
-        <form className="form-inline" onSubmit={createEvent}>
+        <form className="form-inline form-center" onSubmit={createEvent}>
           <input
             className="input"
             type="text"

@@ -38,12 +38,13 @@ export async function PUT(request, { params }) {
     }
 
     const { name, categories } = sanitizeEventPayload(body);
+    const categoriesJson = JSON.stringify(categories ?? []);
     const updatedAt = new Date();
     await pool.query(
       `UPDATE events
-       SET name = $2, categories = $3, updated_at = $4
+       SET name = $2, categories = $3::jsonb, updated_at = $4
        WHERE id = $1`,
-      [params.id, name, categories, updatedAt]
+      [params.id, name, categoriesJson, updatedAt]
     );
 
     return Response.json({
