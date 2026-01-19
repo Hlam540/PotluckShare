@@ -14,3 +14,9 @@ Seed data (optional):
 
 ## Deployment (Vercel)
 Set `DATABASE_URL` in your Vercel project environment variables before deploying.
+
+## How to use
+1) Open the landing page and create an event.
+2) Copy the event link and share it with your group.
+3) Add categories, then add items people should bring.
+4) Anyone with the link can claim an item or edit their name.

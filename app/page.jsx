@@ -39,8 +39,8 @@ export default function HomePage() {
       <header className="hero">
         <h1>PotluckShare</h1>
         <p className="subtitle hero-subtitle">
-          Create a potluck event, save the link, share the link, and let potluck participants add
-          what they will bring. No accounts, no friction, easy to use.
+          Create a potluck event, save the link, share the link, and let potluck participants
+          claim or add what they will bring. No accounts, no friction, easy to use.
         </p>
         <form className="form-inline form-center" onSubmit={createEvent}>
           <input
