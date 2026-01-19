@@ -23,6 +23,9 @@ export default function HomePage() {
       if (!res.ok) throw new Error("Failed to create event");
       const data = await res.json();
       setEventNameInput("");
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("potluckshare:new-event", "1");
+      }
       router.push(`/event/${data.id}`);
     } catch (err) {
       setError("Something went wrong creating the event.");

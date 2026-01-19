@@ -32,10 +32,18 @@ export default function EventPage() {
   const [personDraft, setPersonDraft] = useState("");
   const [editingItemId, setEditingItemId] = useState(null);
   const [itemLabelDraft, setItemLabelDraft] = useState("");
+  const [showLinkNotice, setShowLinkNotice] = useState(false);
 
   useEffect(() => {
     if (!eventId) return;
     loadEvent(eventId);
+    if (typeof window !== "undefined") {
+      const isNew = sessionStorage.getItem("potluckshare:new-event") === "1";
+      if (isNew) {
+        setShowLinkNotice(true);
+        sessionStorage.removeItem("potluckshare:new-event");
+      }
+    }
   }, [eventId]);
 
   const totalItems = useMemo(() => {
@@ -298,6 +306,25 @@ export default function EventPage() {
 
       {!loading && (
         <>
+          {showLinkNotice && (
+            <section className="panel notice">
+              <div>
+                <h2>Save your link</h2>
+                <p className="muted">
+                  This link is the only way to return to this event. Copy it and keep it
+                  somewhere safe.
+                </p>
+              </div>
+              <div className="event-actions">
+                <button className="button button-primary" type="button" onClick={copyLink}>
+                  Copy link
+                </button>
+                <button className="button button-ghost" onClick={() => setShowLinkNotice(false)}>
+                  Dismiss
+                </button>
+              </div>
+            </section>
+          )}
           <section className="panel">
             <div className="panel-row">
               <div>

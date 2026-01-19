@@ -266,6 +266,14 @@ p {
   margin-bottom: 20px;
 }
 
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
 .panel-row {
   display: flex;
   align-items: center;
